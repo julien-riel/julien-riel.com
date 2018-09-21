@@ -4,11 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prettier-check": "./node_modules/prettier/bin-prettier.js prettier --list-different **/*.js",
+    "prettier-fix": "./node_modules/prettier/bin-prettier.js prettier --write **/*.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "config": "^2.0.1",
     "express": "^4.16.3"
+  },
+  "devDependencies": {
+    "prettier": "1.14.3"
   }
 }

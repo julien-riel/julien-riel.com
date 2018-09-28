@@ -7,13 +7,12 @@ import { MongoFindParams } from "../models/mongo-find-params";
 import { VdmRequest } from "../models/vdm-request";
 import applicationSchema from "../json-schema/applications";
 
-import { ControlleurHelper } from "../services/controller-helper";
+import { ControllerHelper } from "../services/controller-helper";
 
 import DaoFactory from "../services/dao";
 import * as db from "../services/database";
 
 const routes: Router = Router();
-const controllerHelper = new ControlleurHelper(applicationSchema);
 
 let daoConfig: DAOConfig = {
   collectionName: "applications",
@@ -35,6 +34,7 @@ let daoConfig: DAOConfig = {
   // security
 };
 const dao = DaoFactory(daoConfig);
+const controllerHelper = new ControllerHelper(daoConfig);
 
 routes.post("/+", async function(req: VdmRequest, res, next) {
   let body = req.body;

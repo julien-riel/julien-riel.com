@@ -1,4 +1,5 @@
 import { MongoFindParams } from "../models/mongo-find-params";
+import { DAOConfig } from "../models/dao-config";
 
 // Faire une classe et passer le schémas au constructeur
 function _limit(value, options: MongoFindParams) {
@@ -121,10 +122,10 @@ let _queryParamsToMongoFindParams = (
   return options;
 };
 
-export class ControlleurHelper {
-  constructor(private schema: any) {}
+export class ControllerHelper {
+  constructor(private daoConfig: DAOConfig) {}
 
   queryParamsToMongoFindParams(options: MongoFindParams, query: any) {
-    return _queryParamsToMongoFindParams(this.schema, options, query);
+    return _queryParamsToMongoFindParams(this.daoConfig.jsonSchema, options, query);
   }
 }

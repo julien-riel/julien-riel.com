@@ -76,8 +76,7 @@ let _queryParamsToMongoFindParams = (
   options: MongoFindParams,
   query: any
 ): MongoFindParams => {
-
-  console.log('Voici le schema', schema);
+  console.log("Voici le schema", schema);
 
   Object.keys(query).forEach(param => {
     let value = query[param];
@@ -122,15 +121,10 @@ let _queryParamsToMongoFindParams = (
   return options;
 };
 
-
-
-
 export class ControlleurHelper {
   constructor(private schema: any) {}
 
-  queryParamsToMongoFindParams( options: MongoFindParams, query: any
-  ) {
+  queryParamsToMongoFindParams(options: MongoFindParams, query: any) {
     return _queryParamsToMongoFindParams(this.schema, options, query);
   }
-
 }

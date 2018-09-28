@@ -69,9 +69,7 @@ function insert(moduleConfig: DAOConfig, db: Db, payload1, userId, callback) {
 
 function find(moduleConfig: DAOConfig, db, options: MongoFindParams, callback) {
   try {
-
     let filt = options.getFilters();
-
 
     db.collection(moduleConfig.collectionName).countDocuments(
       options.getFilters(),
@@ -82,8 +80,8 @@ function find(moduleConfig: DAOConfig, db, options: MongoFindParams, callback) {
         }
 
         let cursor = db
-            .collection(moduleConfig.collectionName)
-            .find(options.getFilters());
+          .collection(moduleConfig.collectionName)
+          .find(options.getFilters());
 
         if (options.projection) {
           cursor = cursor.project(options.projection);
@@ -104,7 +102,9 @@ function find(moduleConfig: DAOConfig, db, options: MongoFindParams, callback) {
             throw err;
           }
 
-          const results2 = results.map(item => { return cleanId(item)})
+          const results2 = results.map(item => {
+            return cleanId(item);
+          });
           callback(null, {
             paging: {
               offset: options.skip,
@@ -231,10 +231,7 @@ function createFunctions(moduleConfig: DAOConfig) {
 
     find: function wrappedUpdate(req, options): Promise<any> {
       return new Promise((resolve, reject) => {
-        return find(moduleConfig, req, options, function(
-          err,
-          result
-        ) {
+        return find(moduleConfig, req, options, function(err, result) {
           if (err) return reject(err);
           resolve(result);
         });

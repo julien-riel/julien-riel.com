@@ -15,7 +15,6 @@ import * as db from "../services/database";
 const routes: Router = Router();
 const controllerHelper = new ControlleurHelper(applicationSchema);
 
-
 let daoConfig: DAOConfig = {
   collectionName: "applications",
   useObjectId: false,
@@ -40,12 +39,12 @@ const dao = DaoFactory(daoConfig);
 routes.post("/+", async function(req: VdmRequest, res, next) {
   let body = req.body;
   try {
-    console.log('Nous tentons dobtenir une connexion');
+    console.log("Nous tentons dobtenir une connexion");
 
     await db.connect();
-    console.log('Nous avons une connexion');
+    console.log("Nous avons une connexion");
     let result = await dao.insert(db.get(), body, req.user.id);
-    console.log('Nous avons eu un résultat');
+    console.log("Nous avons eu un résultat");
     return res.status(201).send(result);
   } catch (err) {
     res.status(500).send(err);
@@ -60,7 +59,7 @@ routes.get("", async function(req: VdmRequest, res, next) {
     controllerHelper.queryParamsToMongoFindParams(options, req.query);
     readFilter(options, req.user);
 
-console.log('Voici les options', options);
+    console.log("Voici les options", options);
 
     await db.connect();
 

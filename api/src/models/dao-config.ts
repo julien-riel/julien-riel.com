@@ -14,27 +14,31 @@ export interface DAOConfig {
    */
   jsonSchema: any;
 
-  sortParams: SortParams[];
+  sortParams: SortParams;
+  fullTextSearch: FullTextSearchParams;
+  audit: AuditParams;
+  version: VersionParams;
 }
 
 export interface FullTextSearchParams {
   enable: boolean;
-  indexedFields: string[];
 }
 
 export interface SortParams {
-  name: string;
-  excluded: boolean;
+  allFields: boolean; // Tous les champs du schema sont triables
+  sortableFields?: string[]; // Liste obligatoire si allFields est false. Indique sur quels champs on peut trier
+  sortableIndexes?: string[]; // À utiliser quand des indexes COMPOSÉS sont définis dans la collection.
 }
 
+// https://msdn.microsoft.com/en-us/library/ff701711.aspx
 export interface GeometrySearchParams {
   enable: boolean;
-  path: string;
+  path: string; // Le nom du champ pour lequel on fait la requête
 }
 
 export interface AuditParams {
-  enable: boolean;
-  history: {
+  enable: boolean; // Des méta-données d'audit seont ajoutés dans un sous-objet audit {createdAt, createdBy, modifiedAt, modifiedBy}
+  history?: {
     enable: boolean;
     mongo: {
       connectionString?: string;

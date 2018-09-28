@@ -4,6 +4,7 @@ export class MongoFindParams {
   public filters: any[];
   public projection: any;
   public sort: any;
+  private hasTextFilter: boolean;
 
   constructor() {
     this.skip = 0;
@@ -11,9 +12,19 @@ export class MongoFindParams {
     this.filters = [];
     this.projection = null;
     this.sort = {};
+
+    this.hasTextFilter = false;
+  }
+
+  public addTextFilter(query) {
+    this.hasTextFilter = true;
+    this.filters.push({ $text: { $search: query } });
   }
 
   public getFilters() {
-    return { $and: this.filters };
+    if (this.filters.length > 0) {
+      return { $and: this.filters };
+    }
+    return null;
   }
 }

@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 // TODO: Log et format response
 
 const errorController = (err, req: Request, res: Response, next) => {
-  console.error(err);
+  console.error('Erreur handler!!!!!!!!!');
   res.status(500).send(err.message || "Something broke");
 };
 

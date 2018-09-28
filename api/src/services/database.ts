@@ -23,7 +23,7 @@ export let connect = async (): Promise<void> => {
 };
 
 export let get = (): Db => {
-  return state.db.db("sss");
+  return state.db.db();
 };
 
 export let close = async (): Promise<any> => {

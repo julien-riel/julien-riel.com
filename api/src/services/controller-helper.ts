@@ -1,5 +1,6 @@
 import { MongoFindParams } from "../models/mongo-find-params";
 
+// Faire une classe et passer le schémas au constructeur
 function _limit(value, options: MongoFindParams) {
   options.limit = parseInt(value);
 }
@@ -70,10 +71,14 @@ function _filter(filterName: string, value, options: MongoFindParams) {
   options.filters.push(f);
 }
 
-export let queryParamsToMongoFindParams = (
+let _queryParamsToMongoFindParams = (
+  schema: any,
   options: MongoFindParams,
   query: any
 ): MongoFindParams => {
+
+  console.log('Voici le schema', schema);
+
   Object.keys(query).forEach(param => {
     let value = query[param];
 
@@ -95,6 +100,7 @@ export let queryParamsToMongoFindParams = (
       if (Array.isArray(value)) {
         _paramRepeated(param, value, options);
       } else {
+        // Si on recherche avec un string, un integer, ça ne trouve pas.
         _filter(param, value, options);
       }
     }
@@ -116,6 +122,15 @@ export let queryParamsToMongoFindParams = (
   return options;
 };
 
-export let addSecurityFilter = (options: MongoFindParams, security) => {
-  options.filters.push(security);
-};
+
+
+
+export class ControlleurHelper {
+  constructor(private schema: any) {}
+
+  queryParamsToMongoFindParams( options: MongoFindParams, query: any
+  ) {
+    return _queryParamsToMongoFindParams(this.schema, options, query);
+  }
+
+}

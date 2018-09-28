@@ -1,70 +1,83 @@
 import { Router } from "express";
+
+import { readFilter } from "./hello-world-security";
+
 import { DAOConfig } from "../models/dao-config";
-import {
-  queryParamsToMongoFindParams,
-  addSecurityFilter
-} from "../services/controller-helper";
-import * as db from "../services/database";
+import { MongoFindParams } from "../models/mongo-find-params";
+import { VdmRequest } from "../models/vdm-request";
+import applicationSchema from "../json-schema/applications";
+
+import { ControlleurHelper } from "../services/controller-helper";
 
 import DaoFactory from "../services/dao";
-import { MongoFindParams } from "../models/mongo-find-params";
-import { runInNewContext } from "vm";
+import * as db from "../services/database";
 
 const routes: Router = Router();
+const controllerHelper = new ControlleurHelper(applicationSchema);
 
-const configSchema = {}; // require('../../json-schemas/config');
 
 let daoConfig: DAOConfig = {
-  collectionName: "config",
+  collectionName: "applications",
   useObjectId: false,
-  jsonSchema: configSchema,
-  sortParams: []
-  //   textParams: { };
-
-  // fullTextSearch: { },
-  // sort: { },
+  jsonSchema: applicationSchema,
+  sortParams: {
+    allFields: true
+  },
+  fullTextSearch: {
+    enable: true
+  },
+  audit: {
+    enable: true
+  },
+  version: {
+    enable: true
+  }
   // geo: {}
-  // audit
-  // version
   // security
 };
 const dao = DaoFactory(daoConfig);
 
-routes.post("/+", async function(req, res, next) {
+routes.post("/+", async function(req: VdmRequest, res, next) {
   let body = req.body;
   try {
+    console.log('Nous tentons dobtenir une connexion');
+
     await db.connect();
-    let result = await dao.insert(db.get(), body);
+    console.log('Nous avons une connexion');
+    let result = await dao.insert(db.get(), body, req.user.id);
+    console.log('Nous avons eu un résultat');
     return res.status(201).send(result);
   } catch (err) {
-    next(err);
+    res.status(500).send(err);
+    Promise.reject(err);
   }
 });
 
-routes.get("", async function(req, res, next) {
+routes.get("", async function(req: VdmRequest, res, next) {
   try {
     let options = new MongoFindParams();
 
-    queryParamsToMongoFindParams(options, req.query);
-    addSecurityFilter(options, {});
+    controllerHelper.queryParamsToMongoFindParams(options, req.query);
+    readFilter(options, req.user);
+
+console.log('Voici les options', options);
 
     await db.connect();
 
-    dao.find(db.get(), options, function(result) {
-      res.status(200).send(result);
-    });
+    let result = await dao.find(db.get(), options);
+    res.status(200).send(result);
   } catch (err) {
     next(err);
   }
 });
 
-routes.get("/:id", async function(req, res) {
+routes.get("/:id", async function(req: VdmRequest, res) {
   let id = req.params.id;
 
   await db.connect();
 
   let options = new MongoFindParams();
-  addSecurityFilter(options, {});
+  readFilter(options, req.user);
 
   dao.findByIdWithFilter(db.get(), id, options, function(result) {
     res.status(200).send(result);

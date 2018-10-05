@@ -45,15 +45,27 @@ function _sort(value, options: MongoFindParams) {
     return prev;
   }, {});
 }
-function _rangeFrom(value, filters) {
-  // let f = {};
-  // f[param] = { $gt: value };
-  // filters.push(f);
+
+function nameReplacer(match, p1: string, p2: string, p3: string, offset, string) {
+  // p1 is nondigits, p2 digits, and p3 non-alphanumerics
+  return p2.toLowerCase() + p3;
 }
-function _rangeTo(value) {
-  // let f = {};
-  // f[param] = { $lt: value };
-  // filters.push(f);
+// TODO: Regarder la config DAO pour voir si les filtres par intervales sont activés
+// TODO: Typer la valeur recherchée.
+function _rangeFrom(filterName: string, value, options: MongoFindParams) {
+  let field = filterName.replace(/^(from)([A-Z])(.*)/, nameReplacer);
+  console.log(`From:  ${field} > ${value}`);
+  let f = {};
+  f[field] = { $gt: parseInt(value) };
+  options.filters.push(f);
+}
+
+function _rangeTo(filterName: string, value, options: MongoFindParams) {
+  let field = filterName.replace(/^(to)([A-Z])(.*)/, nameReplacer);
+  console.log(`To:  ${field} < ${value}`);
+  let f = {};
+  f[field] = { $lt: parseInt(value) };
+  options.filters.push(f);
 }
 
 function _paramRepeated(filterName: string, value, options: MongoFindParams) {
@@ -93,15 +105,16 @@ let _queryParamsToMongoFindParams = (
       _fields(value, options);
     } else if (param === "sort") {
       _sort(value, options);
-      // } else if (param === "from[A-Z].*") {
-      //   _rangeFrom(value);
-      // } else if (param === "to[A-Z]") {
-      //   _rangeTo(value, filters);
+      } else if (param.match(/^from[A-Z]*/)) {
+        _rangeFrom(param, value, options);
+      } else if (param.match(/^to[A-Z]*/)) {
+        _rangeTo(param, value, options);
     } else {
+      // Si aucun mot réservé, alors c'est des filtres sur le champ
       if (Array.isArray(value)) {
         _paramRepeated(param, value, options);
       } else {
-        // Si on recherche avec un string, un integer, ça ne trouve pas.
+        // TODO: Il faut considérer le type de la donnée recherchée lors de la construction de la requête.
         _filter(param, value, options);
       }
     }

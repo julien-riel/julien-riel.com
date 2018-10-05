@@ -60,6 +60,7 @@ routes.get("", async function(req: VdmRequest, res, next) {
     readFilter(options, req.user);
 
     console.log("Voici les options", options);
+    console.log("Voici les filtres", options.filters);
 
     await db.connect();
 

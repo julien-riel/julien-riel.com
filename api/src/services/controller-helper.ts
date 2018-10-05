@@ -73,11 +73,10 @@ function _filter(filterName: string, value, options: MongoFindParams) {
 }
 
 let _queryParamsToMongoFindParams = (
-  schema: any,
+  daoConfig: DAOConfig,
   options: MongoFindParams,
   query: any
 ): MongoFindParams => {
-  console.log("Voici le schema", schema);
 
   Object.keys(query).forEach(param => {
     let value = query[param];
@@ -87,7 +86,9 @@ let _queryParamsToMongoFindParams = (
     } else if (param === "offset") {
       _offset(value, options);
     } else if (param === "q") {
-      _textQuery(value, options);
+      if (daoConfig.fullTextSearch.enable) {
+        _textQuery(value, options);
+      }
     } else if (param === "fields") {
       _fields(value, options);
     } else if (param === "sort") {
@@ -126,6 +127,6 @@ export class ControllerHelper {
   constructor(private daoConfig: DAOConfig) {}
 
   queryParamsToMongoFindParams(options: MongoFindParams, query: any) {
-    return _queryParamsToMongoFindParams(this.daoConfig.jsonSchema, options, query);
+    return _queryParamsToMongoFindParams(this.daoConfig, options, query);
   }
 }

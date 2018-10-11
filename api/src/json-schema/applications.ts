@@ -12,6 +12,7 @@ export default {
     firstName: { type: "string" },
     lastName: { type: "string" },
     description: { type: "string" },
+    plannedDate: { type: "string", format: "date-time"},
     approbation: {
       type: "object",
       properties: {

@@ -5,6 +5,7 @@ import { readFilter } from "./hello-world-security";
 import { DAOConfig } from "../models/dao-config";
 import { MongoFindParams } from "../models/mongo-find-params";
 import { VdmRequest } from "../models/vdm-request";
+
 import applicationSchema from "../json-schema/applications";
 
 import { ControllerHelper } from "../services/controller-helper";
@@ -31,7 +32,6 @@ let daoConfig: DAOConfig = {
     enable: true
   }
   // geo: {}
-  // security
 };
 const dao = DaoFactory(daoConfig);
 const controllerHelper = new ControllerHelper(daoConfig);
@@ -39,12 +39,8 @@ const controllerHelper = new ControllerHelper(daoConfig);
 routes.post("/+", async function(req: VdmRequest, res, next) {
   let body = req.body;
   try {
-    console.log("Nous tentons dobtenir une connexion");
-
     await db.connect();
-    console.log("Nous avons une connexion");
     let result = await dao.insert(db.get(), body, req.user.id);
-    console.log("Nous avons eu un résultat");
     return res.status(201).send(result);
   } catch (err) {
     res.status(500).send(err);
@@ -59,7 +55,6 @@ routes.get("", async function(req: VdmRequest, res, next) {
     controllerHelper.queryParamsToMongoFindParams(options, req.query);
     readFilter(options, req.user);
 
-    console.log("Voici les options", options);
     console.log("Voici les filtres", options.filters);
 
     await db.connect();

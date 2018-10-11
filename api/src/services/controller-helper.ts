@@ -46,42 +46,174 @@ function _sort(value, options: MongoFindParams) {
   }, {});
 }
 
-function nameReplacer(match, p1: string, p2: string, p3: string, offset, string) {
+
+
+function nameReplacer(
+  match,
+  p1: string,
+  p2: string,
+  p3: string,
+  offset,
+  string
+) {
   // p1 is nondigits, p2 digits, and p3 non-alphanumerics
   return p2.toLowerCase() + p3;
 }
 // TODO: Regarder la config DAO pour voir si les filtres par intervales sont activés
 // TODO: Typer la valeur recherchée.
-function _rangeFrom(filterName: string, value, options: MongoFindParams) {
+function _rangeFrom(filterName: string, value, options: MongoFindParams, daoConfig: DAOConfig) {
   let field = filterName.replace(/^(from)([A-Z])(.*)/, nameReplacer);
-  console.log(`From:  ${field} > ${value}`);
+  // console.log(`From:  ${field} > ${value}`);
+  let theType = getTypeOfJsonSchemaProperty(daoConfig.jsonSchema, field);
+  let parsedValue = parseAccordingToJsonSchemaType(value, theType);
+
   let f = {};
-  f[field] = { $gt: parseInt(value) };
+  f[field] = { $gt: parsedValue };
   options.filters.push(f);
 }
 
-function _rangeTo(filterName: string, value, options: MongoFindParams) {
+function _rangeTo(filterName: string, value, options: MongoFindParams, daoConfig: DAOConfig) {
   let field = filterName.replace(/^(to)([A-Z])(.*)/, nameReplacer);
-  console.log(`To:  ${field} < ${value}`);
+  // console.log(`To:  ${field} < ${value}`);
+  let theType = getTypeOfJsonSchemaProperty(daoConfig.jsonSchema, field);
+  let parsedValue = parseAccordingToJsonSchemaType(value, theType);
+
   let f = {};
-  f[field] = { $lt: parseInt(value) };
+  f[field] = { $lt: parsedValue };
   options.filters.push(f);
 }
 
-function _paramRepeated(filterName: string, value, options: MongoFindParams) {
+// TODO: Tester cette fonction
+function _paramRepeated(filterName: string, value, options: MongoFindParams, daoConfig: DAOConfig) {
   let $or = [];
+  let theType = getTypeOfJsonSchemaProperty(daoConfig.jsonSchema, filterName);
   value.forEach(item => {
     let f = {};
-    f[filterName] = item;
+    let parsedValue = parseAccordingToJsonSchemaType(item, theType);
+    f[filterName] = parsedValue;
     $or.push(f);
   });
   options.filters.push({ $or });
 }
 
-function _filter(filterName: string, value, options: MongoFindParams) {
+/**
+ * Retourne la définition d'un json-schema en fonction d'une dot notation.
+ * @param jsonSchema
+ * @param path
+ */
+function getTypeOfJsonSchemaProperty(jsonSchema: any, path: string) {
+  let parts: string[] = path.split(".");
+  if (parts.length == 1) {
+    return jsonSchema.properties[parts[0]];
+  } else {
+    let otherParts = parts.slice(1);
+    let subSchema = null;
+    if (jsonSchema.type === "object") {
+      subSchema = jsonSchema.properties[parts[0]];
+    } else if (jsonSchema.type === "array") {
+      if (
+        jsonSchema.items.type === "array" ||
+        jsonSchema.items.type === "object"
+      ) {
+        subSchema = jsonSchema.properties;
+      } else {
+        return jsonSchema.items[parts[0]];
+      }
+    }
+    return getTypeOfJsonSchemaProperty(subSchema, otherParts.join("."));
+  }
+}
+
+function parseAccordingToJsonSchemaType(value: string, theType: any) {
+  if (theType.type === "string") {
+    // TODO: Checker les formats pour supporter d'autres trucs tels que les dates.
+    return value;
+  } else if (theType.type === "boolean") {
+    if (value === "1" || value.toUpperCase() === "TRUE") {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (theType.type === "integer") {
+    return parseInt(value);
+  } else if (theType.type === "number") {
+    return parseFloat(value);
+  }
+}
+
+function _filter(
+  filterName: string,
+  value,
+  options: MongoFindParams,
+  daoConfig: DAOConfig
+) {
+  let theType = getTypeOfJsonSchemaProperty(daoConfig.jsonSchema, filterName);
+  let parsedValue = parseAccordingToJsonSchemaType(value, theType);
   let f = {};
-  f[filterName] = value;
+  f[filterName] = parsedValue;
   options.filters.push(f);
+}
+
+
+
+let bb = [
+  [
+    -73.63861083984375,
+    45.534731835669675
+  ],
+  [
+    -73.60153198242186,
+    45.534731835669675
+  ],
+  [
+    -73.60153198242186,
+    45.55252525134013
+  ],
+  [
+    -73.63861083984375,
+    45.55252525134013
+  ],
+  [
+    -73.63861083984375,
+    45.534731835669675
+  ]
+];
+
+
+// https://wiki.openstreetmap.org/wiki/Bounding_Box
+// bbox = left,bottom,right,top
+// bbox = min Longitude , min Latitude , max Longitude , max Latitude 
+function _bbox(value, options: MongoFindParams, daoConfig: DAOConfig) {
+  let geoQuery: any = { "location.geometry" : {
+    $geoWithin :{ $geometry : { type: "Polygon", coordinates: [ bb ] } }
+  }};
+
+  options.filters.push(geoQuery);
+}
+ 
+// Special Indexes Restriction
+// You cannot combine the $near operator, which requires a special geospatial index, with a query operator or command that requires another special index. For example you cannot combine $near with the $text query.
+function _radius_not_usable(value, options: MongoFindParams, daoConfig: DAOConfig) {
+  let geoQuery: any = { "location.geometry" : {
+    $near:{
+        $geometry : {
+        type : "Point" ,
+        coordinates : [ -73.56994628906249, 45.50394073994564 ]
+      },
+      $maxDistance: 1000 /* en mètres */
+    }
+  }};
+
+  options.filters.push(geoQuery);
+}
+
+
+function _radius(value, options: MongoFindParams, daoConfig: DAOConfig) {
+  let geoQuery: any = { "location.geometry" : {
+    $geoWithin :{ $centerSphere :[ [ -73.56994628906249, 45.50394073994564 ] , 1 / 6378.1 ]} }
+  };
+
+  options.filters.push(geoQuery);
 }
 
 let _queryParamsToMongoFindParams = (
@@ -89,7 +221,6 @@ let _queryParamsToMongoFindParams = (
   options: MongoFindParams,
   query: any
 ): MongoFindParams => {
-
   Object.keys(query).forEach(param => {
     let value = query[param];
 
@@ -103,19 +234,26 @@ let _queryParamsToMongoFindParams = (
       }
     } else if (param === "fields") {
       _fields(value, options);
+    }
+    else if (param === "bbox") {
+      _bbox(value, options, daoConfig);
+    }
+    else if (param === "radius") {
+      _radius(value, options, daoConfig);
     } else if (param === "sort") {
       _sort(value, options);
-      } else if (param.match(/^from[A-Z]*/)) {
-        _rangeFrom(param, value, options);
-      } else if (param.match(/^to[A-Z]*/)) {
-        _rangeTo(param, value, options);
+    } else if (param.match(/^from[A-Z]*/)) {
+      // TODO: Gérer les ranges de dates.
+      // Gérer le cas ou un nom commence vraiment par
+      _rangeFrom(param, value, options, daoConfig);
+    } else if (param.match(/^to[A-Z]*/)) {
+      _rangeTo(param, value, options, daoConfig);
     } else {
       // Si aucun mot réservé, alors c'est des filtres sur le champ
       if (Array.isArray(value)) {
-        _paramRepeated(param, value, options);
+        _paramRepeated(param, value, options, daoConfig);
       } else {
-        // TODO: Il faut considérer le type de la donnée recherchée lors de la construction de la requête.
-        _filter(param, value, options);
+        _filter(param, value, options, daoConfig);
       }
     }
   });
@@ -124,11 +262,9 @@ let _queryParamsToMongoFindParams = (
   if (!options.skip) {
     options.skip = 0;
   }
-
   if (!options.limit) {
     options.limit = 10;
   }
-
   if (!options.sort) {
     options.sort = { _id: 1 };
   }
@@ -136,6 +272,12 @@ let _queryParamsToMongoFindParams = (
   return options;
 };
 
+/**
+ * Cette classe permet d'appliquer les conventions
+ * 
+ * NOTE: pour que la recherche soit insensible à la casse, les champs doivent être indexés.
+ * 
+ */
 export class ControllerHelper {
   constructor(private daoConfig: DAOConfig) {}
 

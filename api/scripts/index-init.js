@@ -1,12 +1,14 @@
 
 const config = require('config');
 var faker = require('faker');
+var geobase = require('./geobase.json');
+var turf = require('@turf/turf');
 
+turf.sample(geobase, 1)
 
 var MongoClient = require("mongodb").MongoClient;
 const url = config.get('mongo.connectionString');
 let collectionName = "applications";
-
 
 faker.locale = "fr";
 var entries = [];
@@ -19,7 +21,8 @@ for (var i=0; i < 1000; i++) {
         "citizenId" : faker.finance.account(),
         "description" : faker.company.catchPhrase(),
         "assetId" : faker.random.number(),
-        "version" : faker.random.number(),
+        "location": turf.sample(geobase, 1).features[0],
+        "plannedDate" :  faker.date.future(),
         "audit" : {
             "createdBy" : faker.internet.userName(),
             "createdOn" : faker.date.past()
@@ -43,11 +46,15 @@ MongoClient.connect(url, clientOptions, async function(err, db) {
             let allo = await db.db().collection(collectionName).drop();
             console.log('Collection supprimée!', collectionName);
         }
+        
+        // https://docs.mongodb.com/manual/core/index-case-insensitive/
+        // https://docs.mongodb.com/manual/reference/collation-locales-defaults/#collation-languages-locales
+        // https://docs.mongodb.com/manual/reference/collation/
 
         console.log("Création des index de champs")
         // Exemple de requête: db.getCollection('Collection4').find({$text: {$search:"collaboration"}})
         // db.collection.createIndex( { "$**": "text" } )
-        let indexes = {
+        let textIndex = {
             description: "text",
             firstName: "text",
             lastName: "text"
@@ -59,10 +66,12 @@ MongoClient.connect(url, clientOptions, async function(err, db) {
                 firstName: 5
              },
             name: "TextIndex",
-            default_language: "english" // https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages
+            default_language: "french" // https://docs.mongodb.com/manual/reference/text-search-languages/#text-search-languages
           }
+        await db.db().collection(collectionName).createIndex(textIndex, indexOptions);
 
-        await db.db().collection(collectionName).createIndex(indexes, indexOptions)
+        // Création des index spatiaux
+        await db.db().collection(collectionName).createIndex( { 'location.geometry' : "2dsphere" } );
     
         let data = await db.db().collection(collectionName).insertMany(entries,forceServerObjectId=true);
         console.log(`${data.ops.length} insérés dans la collection ${collectionName}`);

@@ -1,2 +1,5 @@
 **/node_modules
 api/build
+
+// Géobase en géojson
+api/scripts/geobase.json
